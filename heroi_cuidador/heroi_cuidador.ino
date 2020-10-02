@@ -3,6 +3,9 @@
 
 MPU6050 mpu6050(Wire);
 
+bool musculo_relaxado;
+bool postura_ereta;
+
 //Variáveis
 bool comecouFadiga;
 bool terminouFadiga;
@@ -38,6 +41,9 @@ void setup() {
   mpu6050.begin();
   mpu6050.calcGyroOffsets(true);
 
+  bool musculo_relaxado = True;
+  bool postura_ereta = True;
+  
   //Inicia as variáveis
   angulo_x = 0;
   angulo_y = 0;
@@ -55,39 +61,41 @@ void loop() {
   //lê os valores do sensor
   leitura();
   atualizaValores();
-
-  //Musculo
-
-  if(!comecouFadiga) {
-    identificaFadiga();
-  }
   
-  if(comecouFadiga && !terminouFadiga) {
-    checaTerminouFadiga();
-  }
-
-  if (terminouFadiga) {
-    resetaSistemaEMG();
-  }
-
-  //Coluna
-
-  if(!postura_incorreta) {
+  // Monitora estado da coluna e do músculo
+  if(musculo_relaxado && postura_ereta) {
+    identificaFadigaMuscular();
     checaPostura();
   }
-  
-  if(postura_incorreta && !postura_correta) {
-    checaPosturaCorreta();
-  }
 
-  if (postura_correta) {
-    resetaSistemaGiro();
+  if(!musculo_relaxado || !postura_ereta) {
+    if(!musculo_relaxado) {
+      checaTerminouFadigaMuscular();
+      
+      if(musculo_relaxado) {
+        resetaSistemaEMG();
+      }
+    }
+    if(!postura_ereta) {
+      checaPosturaCorreta();
+      
+      if(postura_ereta) {
+        resetaSistemaGiro();
+      }
+    }
   }
 
   delay(100);
 }
 
 //Funções
+
+void leitura() {
+    mpu6050.update();
+    angulo_x = mpu6050.getAngleX();
+    angulo_y = mpu6050.getAngleY();
+    angulo_z = mpu6050.getAngleZ();
+}
 
 void atualizaValores() {
   //Reinicia o valor da médoa
@@ -108,14 +116,14 @@ void atualizaValores() {
   media = media/5;
 }
 
-void identificaFadiga() {
+void identificaFadigaMuscular() {
   if (media > PISO_VOLTAGEM_FADIGA) {
     comecouFadiga = true;
   }
 }
 
 //Musculo em fadiga
-void checaTerminouFadiga() {
+void checaTerminouFadigaMuscular() {
   //Disparar motor
 
   //Fadiga terminou
@@ -132,13 +140,6 @@ void resetaSistemaEMG() {
   terminouFadiga = false;
 
   //Desliga motor
-}
-
-void leitura() {
-    mpu6050.update();
-    angulo_x = mpu6050.getAngleX();
-    angulo_y = mpu6050.getAngleY();
-    angulo_z = mpu6050.getAngleZ();
 }
 
 //Checa se a postura está incorreta
