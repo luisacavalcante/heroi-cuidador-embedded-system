@@ -7,8 +7,6 @@ bool musculo_relaxado;
 bool postura_ereta;
 
 //Variáveis
-bool comecouFadiga;
-bool terminouFadiga;
 int valorSensorAtual;
 int valoresSensor[5] = {0, 0, 0, 0, 0};
 int media;
@@ -16,8 +14,6 @@ int media;
 float angulo_x;
 float angulo_y;
 float angulo_z;
-bool postura_correta;
-bool postura_incorreta;
 int contador_postura_correta;
 int contador_postura_incorreta;
 
@@ -41,19 +37,15 @@ void setup() {
   mpu6050.begin();
   mpu6050.calcGyroOffsets(true);
 
-  bool musculo_relaxado = True;
-  bool postura_ereta = True;
+  bool musculo_relaxado = true;
+  bool postura_ereta = true;
   
   //Inicia as variáveis
   angulo_x = 0;
   angulo_y = 0;
   angulo_z = 0;
-  postura_correta = false;
-  postura_incorreta = false;
   contador_postura_incorreta = 0;
   contador_postura_correta = 0;
-  comecouFadiga = false;
-  terminouFadiga = false;
   media = 0;
 }
 
@@ -118,7 +110,7 @@ void atualizaValores() {
 
 void identificaFadigaMuscular() {
   if (media > PISO_VOLTAGEM_FADIGA) {
-    comecouFadiga = true;
+    musculo_relaxado = false;
   }
 }
 
@@ -128,18 +120,14 @@ void checaTerminouFadigaMuscular() {
 
   //Fadiga terminou
   if(media < TETO_VOLTAGEM_REPOUSO) {
-    comecouFadiga = false;
-    terminouFadiga = true;
+    musculo_relaxado = true;
   }
 }
 
 //Musculo saiu da situação de fadiga
 void resetaSistemaEMG() {
-  //Reseta todas as variáveis para reiniciar a contagem
-  comecouFadiga = false;
-  terminouFadiga = false;
-
   //Desliga motor
+  
 }
 
 //Checa se a postura está incorreta
@@ -149,7 +137,7 @@ void checaPostura() {
   }
 
   if(contador_postura_incorreta == MAX_INCORRETA) {
-    postura_incorreta = true;
+    postura_ereta = false;
   }
 }
 
@@ -159,14 +147,13 @@ void checaPosturaCorreta() {
   }
 
   if(contador_postura_correta == MAX_CORRETA) {
-    postura_incorreta = false;
-    postura_correta = true;
+    postura_ereta = true;
   }
 }
 
 void resetaSistemaGiro() {
-    postura_correta = false;
-    postura_incorreta = false;
+    // Desliga motor
+    
     contador_postura_correta = 0;
     contador_postura_incorreta = 0;
 }
