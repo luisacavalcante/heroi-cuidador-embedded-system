@@ -51,7 +51,7 @@ void setup() {
 
 void loop() {
   //lê os valores do sensor
-  leitura();
+  /*leitura();
   atualizaValores();
   
   // Monitora estado da coluna e do músculo
@@ -75,7 +75,24 @@ void loop() {
         resetaSistemaGiro();
       }
     }
+  }*/
+
+  // recebe msg do app para começar o modo
+  if (modo_calibracao) {
+    while(!finalizou_exercicio) {
+      finalizou_exercicio = calibraçao();
+    }
+
+    //recebe msg se terminou calibração ou se existe outro exercicio
+    if(msg == "MSG: FINALIZOU") { //padronizar msg
+       finalizou_exercicio = false
+    }
+    if(msg == "MSG: PROXIMO") { //padronizar msg
+       modo_calibracao = false
+    }
   }
+  
+  
 
   delay(100);
 }
@@ -87,6 +104,8 @@ void leitura() {
     angulo_x = mpu6050.getAngleX();
     angulo_y = mpu6050.getAngleY();
     angulo_z = mpu6050.getAngleZ();
+    
+    //Serial.println("{"+ (String) "MPU" + (String) angulo_x + " " + (String) angulo_y + " " + (String) angulo_z + "}");
 }
 
 void atualizaValores() {
@@ -106,6 +125,9 @@ void atualizaValores() {
 
   //Calcula a média dos valores do vetor
   media = media/5;
+
+//  Serial.println("{" + (String) media + "}");
+//  Serial.println(media);
 }
 
 void identificaFadigaMuscular() {
@@ -156,4 +178,22 @@ void resetaSistemaGiro() {
     
     contador_postura_correta = 0;
     contador_postura_incorreta = 0;
+}
+
+bool calibracao() {
+  bool execicio_finalizado = false
+  
+  while(!execicio_finalizado) {
+    leitura();
+    atualizaValores();
+
+    //Manda os da dodos para o app
+
+    //verifica se o app pediu para parar
+    if(msg == "STS: EXERCICIO_FINALIZADO") { // Padronizar o formato da msg
+      execicio_finalizado = true
+    }
+  }
+
+  return execicio_finalizado
 }
