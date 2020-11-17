@@ -27,11 +27,20 @@ const float VARIACAO_SUPERIOR = 20.0;
 const int  MAX_CORRETA = 20;
 const int  MAX_INCORRETA = 20;
 
+const MOTOR_ESQUERDO = 11
+const MOTOR_DIREITO = 10
+
+
+
+
 void setup() {
   // put your setup code here, to run once:
 
   //Seta os Pinos
   Serial.begin(9600);
+
+  pinMode(MOTOR_ESQUERDO, OUTPUT);
+  pinMode(MOTOR_DIREITO, OUTPUT);
 
   Wire.begin();
   mpu6050.begin();
