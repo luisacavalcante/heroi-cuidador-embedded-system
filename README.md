@@ -1,1 +1,0 @@
-# heroi-cuidador-embedded-system
