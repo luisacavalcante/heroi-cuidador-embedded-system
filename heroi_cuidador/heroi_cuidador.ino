@@ -17,12 +17,8 @@ bool aux2;
 
 bool calibracao = false;
 bool operacao = false;
-//bool segundo_exercicio = false;
-//bool terceiro_exercicio = false;
-//bool finalizou_exercicio = false;
 
 int valor_emg_atual;
-int valores_emg[5] = {0, 0, 0, 0, 0};
 int media_emg;
 int j;
 
@@ -173,41 +169,19 @@ bool checaPosturaCorreta() {
   return false;
 }
 
-void leitura() {
+void leitura_mpu() {
   mpu6050.update();
   angulo_x = mpu6050.getAngleX();
   angulo_y = mpu6050.getAngleY();
   angulo_z = mpu6050.getAngleZ();
 
-//  Serial.println("{" + (String) "MPU" + (String) angulo_x + " " + (String) angulo_y + " " + (String) angulo_z + "}");
-
-//  if(calibracao) {
-//    Serial.println("{" + (String) "CAL"+ (String) angulo_x + "}");
-//  }
-    
 }
 
-void atualizaValores() {
+void leitura_emg() {
 
   //Leitura do valor do sensor EMG
   valor_emg_atual = analogRead(A0);
   
-//  if(operacao) {
-//    valores_emg[j] = valor_emg_atual;
-//    
-//    if(j == 4) {
-//      int soma = 0;
-//      for(int i=0; i<5; i++) {
-//        soma = valores_emg[i];
-//      }
-//      soma = soma/5;
-//      Serial.println("{EMG"+ (String) soma + "}");
-//      j = -1;
-//    }
-//
-//    j++;
-//  }
-
   if(valor_emg_atual > FAIXA_EMG_ATIVACAO) {
     if(media_emg < CONTADOR_EMG ) {
       media_emg = media_emg + 1;
@@ -219,8 +193,6 @@ void atualizaValores() {
       media_emg = media_emg - 1;
     }
   }
-
-//  Serial.println("{"+ (String) "EMG" + (String) media_emg + "}");
 }
 
 bool modo_operacao() {
@@ -229,18 +201,23 @@ bool modo_operacao() {
   while (operacao) {
     String comando = "";
 
-    leitura();
-    atualizaValores();
+    //faz a leitura dos dados do giroscópio 
+    leitura_mpu();
+    //faz a leitura dos dados do emg
+    leitura_emg();
 
     if (postura_ereta) {
+      //confere os dados lidos no mpu
       checaPostura();
     }
 
     if (musculo_relaxado) {
+      //confere os dados lidos no emg
       identificaFadigaMuscular();
     }
 
     if (!postura_ereta && musculo_relaxado) {
+      //não deve ativar o motor só a postura está errada
       bool corrigiu = checaPosturaCorreta();
 
       if (corrigiu) {
@@ -250,6 +227,7 @@ bool modo_operacao() {
     }
 
     if (postura_ereta && !musculo_relaxado) {
+      //não deve ativar o motor
       bool corrigiu = checaTerminouFadigaMuscular();
 
       if (corrigiu) {
@@ -259,11 +237,13 @@ bool modo_operacao() {
     }
     
     if (!musculo_relaxado && !postura_ereta) {
+      //deve ativar o motor
         if (parada_aux) {
           parada_aux = false;
           digitalWrite(MOTOR_ESQUERDO, HIGH);
           Serial.println("{MOVincorreto}");
           delay(3000);
+          //usamos os 3 segundos para mostrar melhor aos cuidadores o movimento incorreto
         }
 
         checaTerminouFadigaMuscular();
@@ -323,7 +303,7 @@ bool iniciar_calibracao() {
         
         while(comando_exercicio != "finalizar_exercicio") {
           //ler mpu
-          leitura();
+          leitura_mpu();
 
           float variacao = 90 - angulo_x;
         
