@@ -22,9 +22,8 @@ bool operacao = false;
 //bool finalizou_exercicio = false;
 
 int valor_emg_atual;
-int valores_emg[5] = {0, 0, 0, 0, 0};
+int valores_emg[20] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 int media_emg;
-int j;
 
 float angulo_x;
 float angulo_y;
@@ -38,7 +37,7 @@ int valor_calibracao;
 //const int  TETO_VOLTAGEM_REPOUSO = 600;
 //const int  PISO_VOLTAGEM_FADIGA = 800;
 
-const int CONTADOR_EMG = 30;
+const int CONTADOR_EMG = 40;
 const int FAIXA_EMG_ATIVACAO = 800;
 
 const float ANGULO_POSTURA_CORRETA_X = 90.0;
@@ -72,7 +71,7 @@ void setup() {
   postura_ereta_2 = true;
 
   parada_aux = true;
-  
+
   calibracao = false;
   operacao = false;
   
@@ -87,9 +86,10 @@ void loop() {
     calibracao = true;
     operacao = false;
     aux2 = false;
+//    Serial.println("{" + (String) "MSG" + (String) "Entrou em iniciar" + (String) "}");
     aux = iniciar_calibracao();
   }
-  else if (modo == "operacao" || aux ) {
+  if (modo == "operacao" || aux ) {
     calibracao = false;
     operacao = true;
     aux = false;
@@ -105,27 +105,25 @@ void identificaFadigaMuscular() {
 
     //Disparar motor
 //    digitalWrite(MOTOR_ESQUERDO, HIGH);
-    Serial.println("{MSGComeçou Fadiga Muscular}");
+   // Serial.println("Começou Fadiga Muscular");
+    delay(2000);
   }
 }
 
 //Musculo em fadiga
-bool checaTerminouFadigaMuscular() {
+void checaTerminouFadigaMuscular() {
+  
   //Fadiga terminou
   if (media_emg == 0) {
-    Serial.println("{MSGTerminou Fadiga Muscular}");
     musculo_relaxado_2 = true;
-    return true;
   }
-
-  return false;
 }
 
 //Musculo saiu da situação de fadiga
 void resetaSistemaEMG() {
   //Desliga motor
   digitalWrite(MOTOR_ESQUERDO, LOW);
-  Serial.println("{MSGTerminou Fadiga Muscular}");
+ // Serial.println("Terminou Fadiga Muscular");
 
   media_emg = 0;
 
@@ -136,7 +134,7 @@ void resetaSistemaEMG() {
 void resetaSistemaGiro() {
   // Desliga motor
   digitalWrite(MOTOR_ESQUERDO, LOW);
-  Serial.println("{" + (String) "MSG" + (String) "Postura Correta" + (String) "}");
+  //Serial.println("{" + (String) "MSG" + (String) "Entrou em modo_operacao" + (String) "}");
 
   contador_postura_correta = 0;
   contador_postura_incorreta = 0;
@@ -153,24 +151,17 @@ void checaPostura() {
 
   if (contador_postura_incorreta == MAX_INCORRETA) {
     postura_ereta = false;
-    contador_postura_incorreta = 0;
-     Serial.println("{" + (String) "MSG" + (String) "Postura errada" + (String) "}");
   }
 }
 
-bool checaPosturaCorreta() {
+void checaPosturaCorreta() {
   if (angulo_x > ANGULO_POSTURA_CORRETA_X - VARIACAO_INFERIOR_X && angulo_x < ANGULO_POSTURA_CORRETA_X + VARIACAO_SUPERIOR_X) {
     contador_postura_correta = contador_postura_correta + 1;
   }
 
   if (contador_postura_correta == MAX_CORRETA) {
-    Serial.println("{" + (String) "MSG" + (String) "Postura Correta" + (String) "}");
-    contador_postura_correta = 0;
     postura_ereta_2 = true;
-    return true;
   }
-
-  return false;
 }
 
 void leitura() {
@@ -191,22 +182,6 @@ void atualizaValores() {
 
   //Leitura do valor do sensor EMG
   valor_emg_atual = analogRead(A0);
-  
-//  if(operacao) {
-//    valores_emg[j] = valor_emg_atual;
-//    
-//    if(j == 4) {
-//      int soma = 0;
-//      for(int i=0; i<5; i++) {
-//        soma = valores_emg[i];
-//      }
-//      soma = soma/5;
-//      Serial.println("{EMG"+ (String) soma + "}");
-//      j = -1;
-//    }
-//
-//    j++;
-//  }
 
   if(valor_emg_atual > FAIXA_EMG_ATIVACAO) {
     if(media_emg < CONTADOR_EMG ) {
@@ -225,7 +200,7 @@ void atualizaValores() {
 
 bool modo_operacao() {
   //dia a dia
-  Serial.println("{MSGEntrou em modo_operacao}");
+  Serial.println("Entrou no modo de operação");
   while (operacao) {
     String comando = "";
 
@@ -240,41 +215,25 @@ bool modo_operacao() {
       identificaFadigaMuscular();
     }
 
-    if (!postura_ereta && musculo_relaxado) {
-      bool corrigiu = checaPosturaCorreta();
-
-      if (corrigiu) {
-        postura_ereta = true;
-        postura_ereta_2 = false;
-      }
-    }
-
-    if (postura_ereta && !musculo_relaxado) {
-      bool corrigiu = checaTerminouFadigaMuscular();
-
-      if (corrigiu) {
-        musculo_relaxado = true;
-        musculo_relaxado_2 = false;
-      }
-    }
-    
     if (!musculo_relaxado && !postura_ereta) {
-        if (parada_aux) {
-          parada_aux = false;
-          digitalWrite(MOTOR_ESQUERDO, HIGH);
-          Serial.println("{MOVincorreto}");
-          delay(3000);
-        }
-
         checaTerminouFadigaMuscular();
         checaPosturaCorreta();
+
+        if (parada_aux) {
+           Serial.println("Movimento incorreto");
+         // Serial.println("{" + (String) "MOV" + (String) "incorreto" + (String) "}");
+          digitalWrite(MOTOR_ESQUERDO, HIGH);
+          parada_aux = false;
+          delay(2000);
+        }
 
         if (musculo_relaxado_2 && postura_ereta_2) {
           digitalWrite(MOTOR_ESQUERDO, LOW);
           resetaSistemaEMG();
           resetaSistemaGiro();
           parada_aux = true;
-          Serial.println("{MOVanalise}");
+         // Serial.println("{" + (String) "MOV" + (String) "correto" + (String) "}");
+        Serial.println("Movimento correto");
         }
     }
 
@@ -283,18 +242,13 @@ bool modo_operacao() {
       operacao = false;
       calibracao = true;
     }
-    else if (comando == "resetar") {
+
+    if (comando == "resetar") {
         resetaSistemaEMG();
         resetaSistemaGiro();
         parada_aux = true;
-        Serial.println("{MOVanalise}");
-    }
-    else if (comando == "resultado") {
-      operacao = false;
-      calibracao = false;
-      aux = false;
-      aux2 = false;
-      return false;
+        //Serial.println("{" + (String) "MOV" + (String) "correto" + (String) "}");
+        Serial.println("Movimento correto");
     }
   }
 
@@ -304,47 +258,43 @@ bool modo_operacao() {
 }
 
 bool iniciar_calibracao() {
-  Serial.println("{MSGEntrou no modo de Calibracao}");
+  Serial.println("Entrou no modo de Calibração");
   String comando = "";
   
   while (calibracao) {
-    
     //checar envio para o celular
     comando = receber_bluetooth();
-    
     if (comando == "operacao") {
       calibracao = false;
       operacao = true;
     }
-    else if (comando == "iniciar_exercicio") {
+    if(comando == "iniciar_calibracao"){
+      while ((comando != "proxima_calibracao")&&(comando!=" operacao")) {
+        //ler mpu
+        leitura();
+        if(angulo_x<=90&&angulo_x>=0){
+          if(90-angulo_x>valor_calibracao){
+           valor_calibracao=90-angulo_x;
+          } 
+         }
+         
         
-        String comando_exercicio = "";
-        valor_calibracao = 0.0;
-        
-        while(comando_exercicio != "finalizar_exercicio") {
-          //ler mpu
-          leitura();
-
-          float variacao = 90 - angulo_x;
-        
-          if(variacao > valor_calibracao) {
-            if(variacao >= 0 && variacao <= 90) {
-              valor_calibracao = variacao;
-            }
-          }
-
-          comando_exercicio = receber_bluetooth();
-          delay(20);
-        }
-
-        if (comando_exercicio == "finalizar_exercicio") {
-          Serial.println("{" + (String) "CAL" + (String) valor_calibracao + (String) "}");
-          //enviar valor máximo pro app
-        }
+       comando = receber_bluetooth();
+      }
     }
-    else if (comando == "fim_calibracao") {
+     if (comando == "proxima_calibracao") {
+      Serial.println( (String) "CAL" + (String) valor_calibracao);
+      //enviar valor máximo pro app
+      valor_calibracao=0;
+    }
+    if (comando == "fim_calibracao") {
       calibracao = false;
       operacao = true;
+    }
+     if (comando.substring(0, 3) == "CAL") {
+     // comando.substring(3).toFloat();
+       Serial.println("Valor calibrado:"+(String)comando.substring(3) );
+       delay(5000);
     }
 
     delay(20);
