@@ -1,7 +1,8 @@
 #include <MPU6050_tockn.h>
-#include<SoftwareSerial.h>
+#include"BluetoothSerial.h"
+#include <string>
 
-SoftwareSerial bluetooth(10, 11);
+BluetoothSerial SerialBT;
 MPU6050 mpu6050(Wire);
 
 bool musculo_relaxado;
@@ -50,21 +51,21 @@ const int  MAX_INCORRETA = 40;
 const int MOTOR_ESQUERDO = 11;
 const int MOTOR_DIREITO = 10;
 
-
 void setup() {
   Serial.begin(9600);
-  bluetooth.begin(9600);
+  SerialBT.begin("Heroi Cuidador");
+  //  bluetooth.begin(9600);
 
   pinMode(MOTOR_ESQUERDO, OUTPUT);
   pinMode(MOTOR_DIREITO, OUTPUT);
 
   digitalWrite(MOTOR_ESQUERDO, LOW);
   digitalWrite(MOTOR_DIREITO, LOW);
-  
+
   Wire.begin();
   mpu6050.begin();
   mpu6050.setGyroOffsets(-1.20, -4.25, 1.53);
-  valor_calibracao=0;
+  valor_calibracao = 0;
   musculo_relaxado = true;
   postura_ereta = true;
 
@@ -72,17 +73,17 @@ void setup() {
   postura_ereta_2 = true;
 
   parada_aux = true;
-  
+
   calibracao = false;
   operacao = false;
-  
+
   aux2 = false;
   aux = false;
 }
 
 void loop() {
   String  modo = receber_bluetooth();
-  
+
   if (modo == "calibracao" || aux2) {
     calibracao = true;
     operacao = false;
@@ -95,7 +96,7 @@ void loop() {
     aux = false;
     aux2 = modo_operacao();
   }
-  
+
   delay(20);
 }
 
@@ -104,8 +105,8 @@ void identificaFadigaMuscular() {
     musculo_relaxado = false;
 
     //Disparar motor
-//    digitalWrite(MOTOR_ESQUERDO, HIGH);
-    Serial.println("{MSGComeçou Fadiga Muscular}");
+    //    digitalWrite(MOTOR_ESQUERDO, HIGH);
+    enviar_bluetooth("{MSGComeçou Fadiga Muscular}");
   }
 }
 
@@ -113,7 +114,7 @@ void identificaFadigaMuscular() {
 bool checaTerminouFadigaMuscular() {
   //Fadiga terminou
   if (media_emg == 0) {
-    Serial.println("{MSGTerminou Fadiga Muscular}");
+    enviar_bluetooth("{MSGTerminou Fadiga Muscular}");
     musculo_relaxado_2 = true;
     return true;
   }
@@ -125,7 +126,7 @@ bool checaTerminouFadigaMuscular() {
 void resetaSistemaEMG() {
   //Desliga motor
   digitalWrite(MOTOR_ESQUERDO, LOW);
-  Serial.println("{MSGTerminou Fadiga Muscular}");
+  enviar_bluetooth("{MSGTerminou Fadiga Muscular}");
 
   media_emg = 0;
 
@@ -136,7 +137,7 @@ void resetaSistemaEMG() {
 void resetaSistemaGiro() {
   // Desliga motor
   digitalWrite(MOTOR_ESQUERDO, LOW);
-  Serial.println("{" + (String) "MSG" + (String) "Postura Correta" + (String) "}");
+  enviar_bluetooth("{" + (String) "MSG" + (String) "Postura Correta" + (String) "}");
 
   contador_postura_correta = 0;
   contador_postura_incorreta = 0;
@@ -154,7 +155,7 @@ void checaPostura() {
   if (contador_postura_incorreta == MAX_INCORRETA) {
     postura_ereta = false;
     contador_postura_incorreta = 0;
-     Serial.println("{" + (String) "MSG" + (String) "Postura errada" + (String) "}");
+    enviar_bluetooth("{" + (String) "MSG" + (String) "Postura errada" + (String) "}");
   }
 }
 
@@ -164,7 +165,7 @@ bool checaPosturaCorreta() {
   }
 
   if (contador_postura_correta == MAX_CORRETA) {
-    Serial.println("{" + (String) "MSG" + (String) "Postura Correta" + (String) "}");
+    enviar_bluetooth("{" + (String) "MSG" + (String) "Postura Correta" + (String) "}");
     contador_postura_correta = 0;
     postura_ereta_2 = true;
     return true;
@@ -179,53 +180,53 @@ void leitura() {
   angulo_y = mpu6050.getAngleY();
   angulo_z = mpu6050.getAngleZ();
 
-//  Serial.println("{" + (String) "MPU" + (String) angulo_x + " " + (String) angulo_y + " " + (String) angulo_z + "}");
+  //  enviar_bluetooth("{" + (String) "MPU" + (String) angulo_x + " " + (String) angulo_y + " " + (String) angulo_z + "}");
 
-//  if(calibracao) {
-//    Serial.println("{" + (String) "CAL"+ (String) angulo_x + "}");
-//  }
-    
+  //  if(calibracao) {
+  //    enviar_bluetooth("{" + (String) "CAL"+ (String) angulo_x + "}");
+  //  }
+
 }
 
 void atualizaValores() {
 
   //Leitura do valor do sensor EMG
   valor_emg_atual = analogRead(A0);
-  
-//  if(operacao) {
-//    valores_emg[j] = valor_emg_atual;
-//    
-//    if(j == 4) {
-//      int soma = 0;
-//      for(int i=0; i<5; i++) {
-//        soma = valores_emg[i];
-//      }
-//      soma = soma/5;
-//      Serial.println("{EMG"+ (String) soma + "}");
-//      j = -1;
-//    }
-//
-//    j++;
-//  }
 
-  if(valor_emg_atual > FAIXA_EMG_ATIVACAO) {
-    if(media_emg < CONTADOR_EMG ) {
+  //  if(operacao) {
+  //    valores_emg[j] = valor_emg_atual;
+  //
+  //    if(j == 4) {
+  //      int soma = 0;
+  //      for(int i=0; i<5; i++) {
+  //        soma = valores_emg[i];
+  //      }
+  //      soma = soma/5;
+  //      enviar_bluetooth("{EMG"+ (String) soma + "}");
+  //      j = -1;
+  //    }
+  //
+  //    j++;
+  //  }
+
+  if (valor_emg_atual > FAIXA_EMG_ATIVACAO) {
+    if (media_emg < CONTADOR_EMG ) {
       media_emg = media_emg + 1;
     }
   }
 
-  if(valor_emg_atual < FAIXA_EMG_ATIVACAO) {
-    if(media_emg > 0 ) {
+  if (valor_emg_atual < FAIXA_EMG_ATIVACAO) {
+    if (media_emg > 0 ) {
       media_emg = media_emg - 1;
     }
   }
 
-//  Serial.println("{"+ (String) "EMG" + (String) media_emg + "}");
+  //  enviar_bluetooth("{"+ (String) "EMG" + (String) media_emg + "}");
 }
 
 bool modo_operacao() {
   //dia a dia
-  Serial.println("{MSGEntrou em modo_operacao}");
+  enviar_bluetooth("{MSGEntrou em modo_operacao}");
   while (operacao) {
     String comando = "";
 
@@ -257,25 +258,25 @@ bool modo_operacao() {
         musculo_relaxado_2 = false;
       }
     }
-    
+
     if (!musculo_relaxado && !postura_ereta) {
-        if (parada_aux) {
-          parada_aux = false;
-          digitalWrite(MOTOR_ESQUERDO, HIGH);
-          Serial.println("{MOVincorreto}");
-          delay(3000);
-        }
+      if (parada_aux) {
+        parada_aux = false;
+        digitalWrite(MOTOR_ESQUERDO, HIGH);
+        enviar_bluetooth("{MOVincorreto}");
+        delay(3000);
+      }
 
-        checaTerminouFadigaMuscular();
-        checaPosturaCorreta();
+      checaTerminouFadigaMuscular();
+      checaPosturaCorreta();
 
-        if (musculo_relaxado_2 && postura_ereta_2) {
-          digitalWrite(MOTOR_ESQUERDO, LOW);
-          resetaSistemaEMG();
-          resetaSistemaGiro();
-          parada_aux = true;
-          Serial.println("{MOVanalise}");
-        }
+      if (musculo_relaxado_2 && postura_ereta_2) {
+        digitalWrite(MOTOR_ESQUERDO, LOW);
+        resetaSistemaEMG();
+        resetaSistemaGiro();
+        parada_aux = true;
+        enviar_bluetooth("{MOVanalise}");
+      }
     }
 
     comando = receber_bluetooth();
@@ -284,10 +285,10 @@ bool modo_operacao() {
       calibracao = true;
     }
     else if (comando == "resetar") {
-        resetaSistemaEMG();
-        resetaSistemaGiro();
-        parada_aux = true;
-        Serial.println("{MOVanalise}");
+      resetaSistemaEMG();
+      resetaSistemaGiro();
+      parada_aux = true;
+      enviar_bluetooth("{MOVanalise}");
     }
     else if (comando == "resultado") {
       operacao = false;
@@ -304,43 +305,43 @@ bool modo_operacao() {
 }
 
 bool iniciar_calibracao() {
-  Serial.println("{MSGEntrou no modo de Calibracao}");
+  enviar_bluetooth("{MSGEntrou no modo de Calibracao}");
   String comando = "";
-  
+
   while (calibracao) {
-    
+
     //checar envio para o celular
     comando = receber_bluetooth();
-    
+
     if (comando == "operacao") {
       calibracao = false;
       operacao = true;
     }
     else if (comando == "iniciar_exercicio") {
-        
-        String comando_exercicio = "";
-        valor_calibracao = 0.0;
-        
-        while(comando_exercicio != "finalizar_exercicio") {
-          //ler mpu
-          leitura();
 
-          float variacao = 90 - angulo_x;
-        
-          if(variacao > valor_calibracao) {
-            if(variacao >= 0 && variacao <= 90) {
-              valor_calibracao = variacao;
-            }
+      String comando_exercicio = "";
+      valor_calibracao = 0.0;
+
+      while (comando_exercicio != "finalizar_exercicio") {
+        //ler mpu
+        leitura();
+
+        float variacao = 90 - angulo_x;
+
+        if (variacao > valor_calibracao) {
+          if (variacao >= 0 && variacao <= 90) {
+            valor_calibracao = variacao;
           }
-
-          comando_exercicio = receber_bluetooth();
-          delay(20);
         }
 
-        if (comando_exercicio == "finalizar_exercicio") {
-          Serial.println("{" + (String) "CAL" + (String) valor_calibracao + (String) "}");
-          //enviar valor máximo pro app
-        }
+        comando_exercicio = receber_bluetooth();
+        delay(20);
+      }
+
+      if (comando_exercicio == "finalizar_exercicio") {
+        enviar_bluetooth("{" + (String) "CAL" + (String) valor_calibracao + (String) "}");
+        //enviar valor máximo pro app
+      }
     }
     else if (comando == "fim_calibracao") {
       calibracao = false;
@@ -356,13 +357,24 @@ bool iniciar_calibracao() {
 
 String receber_bluetooth() {
   String  comando = "";
-  if (Serial.available()) {
-    while (Serial.available()) {
-      char caracter = Serial.read();
+  if (SerialBT.available()) {
+    while (SerialBT.available()) {
+      char caracter = SerialBT.read();
       comando += caracter;
       delay(10);
     }
 
   }
   return comando;
+}
+
+void enviar_bluetooth(String mensagem) {
+  int tamanho = mensagem.length();
+  uint8_t mensagem_bluetooth[tamanho];
+
+  for (int i = 0; i < tamanho; i++) {
+    p[i] = (uint8_t) mensagem[i];
+  }
+
+  SerialBT.write((uint8_t*)&mensagem_bluetooth, tamanho);
 }
